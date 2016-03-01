@@ -1,0 +1,9 @@
+#MAC files
+.DS_Store
+#temporary matlab files
+*.m~
+#matlab data files
+*.mat
+
+#edf data files
+*.edf
