@@ -1,40 +1,42 @@
-function runExperiment(flashShower, wordShower, config, cancelNotifyFn)
-%function runExperiment(flashShower, wordShower, config, cancelNotifyFn)
+function runExperiment(flash_shower, word_shower, config, cancel_notify_fn)
+%function runExperiment(flash_shower, word_shower, config, cancel_notify_fn)
 
-lightImage = imread('light.png');
-darkImage = imread('dark.jpg');
+light_image = imread('light.png');
+dark_image = imread('dark.jpg');
 
-    function showSignal(showDuration, pauseDuration, numFlashes)
-        for i = 1:numFlashes
-             imshow(lightImage, 'Parent', flashShower);
-             pause(showDuration);
-             imshow(darkImage, 'Parent', flashShower);
-             pause(pauseDuration);
+    function showSignal(show_duration, pause_duration, num_flashes)
+        for i = 1:num_flashes
+             imshow(light_image, 'Parent', flash_shower);
+             pause(show_duration);
+             imshow(dark_image, 'Parent', flash_shower);
+             pause(pause_duration);
         end
     end
 
     function [start, duration] = showWord(word)
-        wordToShow = word.word;
+        word_to_show = word.word;
         duration = config.show.duration;
         
         start = tic;
         
-        showWordSub(wordToShow, 'Parent', wordShower);
-        remainingDuration = duration - toc(start);
+        set(word_shower, 'String', word_to_show);
+        remaining_duration = duration - toc(start);
 
-        if remainingDuration > 0
-            pause(remainingDuration);
+        if remaining_duration > 0
+            pause(remaining_duration);
         end
         
         duration = toc(start);
     end
+
+    showPause = @()set(word_shower, 'String', '--');
     
     function outputs = showWords()
-        numWords = length(words);
-        outputs = zeros(numWords, 3);
+        num_words = length(config.words);
+        outputs = zeros(num_words, 3);
         
-        for i = 1:numImages     
-            word = words(i);
+        for i = 1:num_words
+            word = config.words(i);
             
             [start, duration] = showWord(word);
             
@@ -42,21 +44,21 @@ darkImage = imread('dark.jpg');
             outputs(i, 2) = duration;
             outputs(i, 3) = word.is_real;
             
-            if(cancelNotifyFn())
+            if(cancel_notify_fn())
                 break;
             end
             
-	    showPauseSub(wordShower)
+            showPause()
             pause(config.pause.duration);
         end
     end
 
 
-startSignal = config.startSignal;
-stopSignal = config.stopSignal;
-showSignal(startSignal.showDuration, startSignal.pauseDuration, startSignal.numFlashes);
+start_signal = config.start_signal;
+stop_signal = config.stop_signal;
+showSignal(start_signal.show_duration, start_signal.pause_duration, start_signal.num_flashes);
 
-if(cancelNotifyFn())
+if(cancel_notify_fn())
     return;
 end
 
@@ -64,9 +66,9 @@ pause(1);
 
 outputs = showWords();
 
-showWordSub('complete', 'Parent', wordShower);
+set(word_shower, 'String', '--Complete--');
 
-showSignal(stopSignal.showDuration, stopSignal.pauseDuration, stopSignal.numFlashes);
+showSignal(stop_signal.show_duration, stop_signal.pause_duration, stop_signal.num_flashes);
 
 dlmwrite('outputs.dat', outputs, 'precision', '%16d');
 

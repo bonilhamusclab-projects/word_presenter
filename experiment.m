@@ -44,6 +44,33 @@ end
 % End initialization code - DO NOT EDIT
 end
 
+function setBoundField(h, field, value)
+    handles = guidata(h);
+    handles.(field) = value;
+    guidata(h, handles);
+    
+    boundFns = handles.boundFns;
+    if isfield(boundFns, field)
+        fnsForField = boundFns.(field);
+        for i = 1: size(fnsForField, 2)
+            fn = fnsForField{i};
+            fn(value);
+        end
+    end
+end
+
+function bind(h, field, fn)
+    handles = guidata(h);
+    if ~isfield(handles, 'boundFns')
+        handles.boundFns = {};
+    end
+    origFns = {};
+    if isfield(handles.boundFns, field)
+        origFns = handles.boundFns.(field);
+    end
+    handles.boundFns.(field) = [origFns {fn}];
+    guidata(h, handles);
+end
 
 % --- Executes just before experiment is made visible.
 function experiment_OpeningFcn(hObject, ~, handles, varargin)
@@ -55,9 +82,24 @@ function experiment_OpeningFcn(hObject, ~, handles, varargin)
 
 % Choose default command line output for experiment
 handles.output = hObject;
-
-% Update handles structure
 guidata(hObject, handles);
+
+    function setFontSize(fontSize)
+        set(handles.fontSizeText, 'String', ...
+            sprintf('Font Size: %.0f', fontSize));
+        set(handles.displayText, 'FontSize', fontSize);
+    end
+
+bind(hObject, 'fontSize', @setFontSize);
+
+    function setConfigPath(configPath)
+        handlesC = guidata(hObject);
+        set(handlesC.startButton,'Enable','On');
+        set(handlesC.configFilePathText,'String',configPath);
+        handlesC.config = picShower.fileUtils.loadConfig(configPath);
+        guidata(hObject, handlesC);
+    end
+bind(hObject, 'configPath', @setConfigPath);
 
 % UIWAIT makes experiment wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -73,7 +115,6 @@ function varargout = experiment_OutputFcn(~, ~, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 end
-
 
 % --- Executes on button press in startButton.
 function startButton_Callback(~, ~, handles)
@@ -92,12 +133,9 @@ set(handles.cancelButton, 'Enable', 'On');
 handles.cancel = false;
 guidata(handles.output, handles);
 
-configPath = get(handles.configFilePathText, 'String');
-config = picShower.fileUtils.loadConfig(configPath);
-
 picShower.controllers.runExperiment(...
     handles.flashShower, handles.displayText, ...
-    config, ...
+    handles.config, ...
     @cancelNotifyFn);
 
 end
@@ -115,9 +153,7 @@ function prepTextBoxForWindowsOs(hObject)
 end
 
 function fontSizeSlider_Callback(slider, ~, handles)
-    mag = slider.Value;
-    set(handles.fontSizeText, 'String', sprintf('Font Size: %.0f', mag));
-    set(handles.displayText, 'FontSize', mag);
+    setBoundField(handles.output, 'fontSize', slider.Value);
 end
 
 function fullpath = selectFileSub()
@@ -136,7 +172,6 @@ end
 function loadConfigFileButton_Callback(~, ~, handles)
     configFilePath = selectFileSub();
     if configFilePath
-        set(handles.startButton,'Enable','On');
-        set(handles.configFilePathText,'String',configFilePath);
+        setBoundField(handles.output, 'configPath', configFilePath);
     end
 end
